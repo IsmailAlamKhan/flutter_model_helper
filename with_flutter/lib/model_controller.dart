@@ -1,45 +1,38 @@
+import 'dart:io';
+import 'package:file_chooser/file_chooser.dart' as file_chooser;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:sprintf/sprintf.dart';
 
-class ModelController extends GetxService {
+import 'const.dart';
+
+class ModelController extends GetxService with SingleGetTickerProviderMixin {
+  TabController tabController;
+  @override
+  void onInit() {
+    super.onInit();
+    tabController = TabController(vsync: this, length: 2);
+  }
+
   final FocusNode keyBoardFocus = FocusNode();
   final FocusNode modelNameFocus = FocusNode();
   final FocusNode modelFieldsFocus = FocusNode();
 
-  final String fromJSONHead = ' %s.fromJson(Map<String, dynamic> json) {';
-  final String fromJSONMiddle = '\n     %s = json[' '%s' '];';
-
-  final String toJSONHead =
-      ' Map<String, dynamic> toJson() {\nfinal Map<String, dynamic> data = Map<String, dynamic>();';
-  final String toJSONMiddle = '\n     data[' '%s' '] = this.%s;';
-  final String toStringHead = '@override\n'
-      ' String toString() {\n'
-      ' return '
-      '\'\'\' '
-      '%s:{\n';
-
-  final String toStrMiddle = '            %s = \${this.%s};' '\n';
-  final String fromDocumentSnapshotHead =
-      '%s.fromDocumentSnapshot({DocumentSnapshot documentSnapshot}) {\n';
-
-  final String fromDocumentSnapshotMiddleID =
-      r'            %s = documentSnapshot.%s;' '\n';
-  final String fromDocumentSnapshotMiddle =
-      r'            %s = documentSnapshot.data()[' '%s' '];' '\n';
-  List<Map<String, dynamic>> list = List<Map<String, dynamic>>();
-  List<String> result = [''];
+  List<Map<String, dynamic>> list = [];
+  final result = [''].obs;
   String fields;
   String modelName;
 
-  final List<Map<String, dynamic>> _listType = List<Map<String, dynamic>>();
+  final List<Map<String, String>> _listType = [];
   var counter = 0.obs;
-  void generateModel(bool wantFirestore) {
+  final wantFirestore = false.obs;
+  void generateModel() {
     _listType.clear();
     list.clear();
     final _l = fields.replaceAll('\n ', '').replaceAll('; ', ';').split(';');
-    List<String> type = List<String>();
-    List<String> val = List<String>();
+    List<String> type = [];
+    List<String> val = [];
     print(_l);
     _l.forEach((element) {
       if (element.contains(' ')) {
@@ -51,21 +44,23 @@ class ModelController extends GetxService {
     val.remove('');
     print(type);
     print(val);
-
-    type.forEach((type) {
-      val.forEach((val) {
-        if (!_listType.contains(type) && !_listType.contains(val))
-          _listType.add({
-            'type': type,
-            'val': val,
-          });
+    _listType.clear();
+    type.forEach((typeElem) {
+      val.forEach((valElem) {
+        print(_listType.length == val.length);
+        if (_listType.length == val.length && _listType.length == type.length)
+          return;
+        _listType.add({
+          'type': typeElem,
+          'val': valElem,
+        });
       });
     });
     print(_listType);
     list = _listType;
 
     result.clear();
-    if (wantFirestore)
+    if (wantFirestore.value)
       result.add(
           'import ' 'package:cloud_firestore/cloud_firestore.dart' ';\n\n');
 
@@ -104,12 +99,12 @@ class ModelController extends GetxService {
 
     result.add('\n\n///*To String Start\n');
 
-    result.add(sprintf(toStringHead, [modelName]));
+    result.add(sprintf(ToStringHead, [modelName]));
     list.forEach(
       (element) {
         result.add(
           sprintf(
-            toStrMiddle,
+            ToStrMiddle,
             [element['val'], element['val']],
           ),
         );
@@ -119,23 +114,23 @@ class ModelController extends GetxService {
 
     result.add('\n\n///*To String End \n');
 
-    if (wantFirestore) {
+    if (wantFirestore.value) {
       result.add('\n\n///*fromDocumentSnapshot Start\n');
 
-      result.add(sprintf(fromDocumentSnapshotHead, [modelName]));
+      result.add(sprintf(FromDocumentSnapshotHead, [modelName]));
       list.forEach(
         (element) {
           if (element['val'] != 'id')
             result.add(
               sprintf(
-                fromDocumentSnapshotMiddle,
+                FromDocumentSnapshotMiddle,
                 [element['val'], element['val']],
               ),
             );
           else
             result.add(
               sprintf(
-                fromDocumentSnapshotMiddleID,
+                FromDocumentSnapshotMiddleID,
                 [element['val'], element['val']],
               ),
             );
@@ -148,12 +143,12 @@ class ModelController extends GetxService {
     result.add('\n\n///*From JSON Start \n');
 
     ///*From Json
-    result.add(sprintf(fromJSONHead, [modelName]));
+    result.add(sprintf(FromJSONHead, [modelName]));
     list.forEach(
       (element) {
         result.add(
           sprintf(
-            fromJSONMiddle,
+            FromJSONMiddle,
             [element['val'], element['val']],
           ),
         );
@@ -169,12 +164,12 @@ class ModelController extends GetxService {
     result.add('\n\n///*To JSON Start \n');
 
     ///*To Json
-    result.add(sprintf(toJSONHead, [modelName]));
+    result.add(sprintf(ToJSONHead, [modelName]));
     list.forEach(
       (element) {
         result.add(
           sprintf(
-            toJSONMiddle,
+            ToJSONMiddle,
             [element['val'], element['val']],
           ),
         );
@@ -187,82 +182,19 @@ class ModelController extends GetxService {
 
     ///*To Json
     result.insert(result.length, '}');
-    if (wantFirestore)
-      genModel();
-    else
+    if (wantFirestore.value) {
+      genCRUD();
+      counter++;
+    } else {
+      crudResult.clear();
       crudResult.add('No value as you did not choose firebase');
+    }
     counter++;
   }
 
-  final crudResult = [''];
-  final String streamHead = ' Stream<List<%s>> %sStream() {';
-  final String streamMIddle = '\n    return _firestore'
-      '\n     .collection('
-      '%s'
-      ')'
-      '\n     .snapshots()'
-      '\n     .map((QuerySnapshot query) {'
-      '\n       List<%s> retVal = List();'
-      '\n        query.docs.forEach((element) async {'
-      '\n          retVal.add('
-      '\n            %s.fromDocumentSnapshot('
-      '\n              documentSnapshot: element,'
-      '\n            ),'
-      '\n          );'
-      '\n       });'
-      '\n     return retVal;'
-      '\n   });';
+  final crudResult = [''].obs;
 
-  final String addHead = ' void add%s({%s %s}) {';
-  final String addMIddle = '\n  _firestore'
-      '\n    .collection('
-      '%s'
-      ').doc().set({'
-      '\n    '
-      'dateCreated'
-      ': Timestamp.now(),';
-  final String addEnd = '\n    })'
-      '\n    .then((value) => print('
-      'success'
-      '))'
-      '\n    .catchError((err) {'
-      '\n        print(err.message);'
-      '\n        print(err.code);'
-      '\n      });'
-      '\n    }';
-  final String updateHead = ' void update%s({%s %s}) {';
-  final String updateMIddle = '\n  _firestore'
-      '\n    .collection('
-      '%s'
-      ').doc(%s.id).update({'
-      '\n    '
-      'dateCreated'
-      ': Timestamp.now(),';
-  final String updateEnd = '\n    })'
-      '\n    .then((value) => print('
-      'success'
-      '))'
-      '\n    .catchError((err) {'
-      '\n        print(err.message);'
-      '\n        print(err.code);'
-      '\n      });'
-      '\n    }';
-
-  final String delete = ' void delete%s({int id}) {'
-      '\n  _firestore'
-      '\n    .collection('
-      '%s'
-      ').doc(id).delete()'
-      '\n    .then((value) => print('
-      'success'
-      '))'
-      '\n    .catchError((err) {'
-      '\n        print(err.message);'
-      '\n        print(err.code);'
-      '\n      });'
-      '\n    }';
-
-  void genModel() {
+  void genCRUD() {
     crudResult.clear();
     crudResult
         .add('import ' 'package:cloud_firestore/cloud_firestore.dart' ';\n\n');
@@ -278,10 +210,10 @@ class ModelController extends GetxService {
 
     crudResult.add('  ///*Stream Start\n');
 
-    crudResult.add(sprintf(streamHead, [modelName, modelName]));
+    crudResult.add(sprintf(StreamHead, [modelName, modelName]));
     crudResult.add(
       sprintf(
-        streamMIddle,
+        StreamMIddle,
         [
           modelName.toLowerCase(),
           modelName,
@@ -299,7 +231,7 @@ class ModelController extends GetxService {
 
     crudResult.add(
       sprintf(
-        addHead,
+        AddHead,
         [
           modelName[0].toUpperCase() + modelName.substring(1),
           modelName,
@@ -309,14 +241,14 @@ class ModelController extends GetxService {
     );
     crudResult.add(
       sprintf(
-        addMIddle,
+        AddMIddle,
         [modelName],
       ),
     );
     list.forEach((element) {
       crudResult.add(
         sprintf(
-          '\n    ' '%s' ': $modelName.%s',
+          '\n     \'%s\' : \'$modelName.%s\'',
           [
             element['val'],
             element['val'],
@@ -324,7 +256,7 @@ class ModelController extends GetxService {
         ),
       );
     });
-    crudResult.add(addEnd);
+    crudResult.add(AddEnd);
 
     crudResult.add('\n }\n');
 
@@ -335,7 +267,7 @@ class ModelController extends GetxService {
 
     crudResult.add(
       sprintf(
-        updateHead,
+        UpdateHead,
         [
           modelName[0].toUpperCase() + modelName.substring(1),
           modelName,
@@ -345,7 +277,7 @@ class ModelController extends GetxService {
     );
     crudResult.add(
       sprintf(
-        updateMIddle,
+        UpdateMIddle,
         [
           modelName.toLowerCase(),
           modelName.toLowerCase(),
@@ -363,7 +295,7 @@ class ModelController extends GetxService {
         ),
       );
     });
-    crudResult.add(updateEnd);
+    crudResult.add(UpdateEnd);
 
     crudResult.add('\n }\n');
 
@@ -374,7 +306,7 @@ class ModelController extends GetxService {
 
     crudResult.add(
       sprintf(
-        delete,
+        Delete,
         [
           modelName[0].toUpperCase() + modelName.substring(1),
           modelName,
@@ -407,16 +339,34 @@ class ModelController extends GetxService {
       FocusScope.of(Get.context).requestFocus(modelNameFocus);
       return;
     }
+    if (fields == null || fields == '') {
+      snackBar.hideCurrentSnackBar();
+      snackBar.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please enter the fields of the model',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red[900],
+        ),
+      );
+      FocusScope.of(Get.context).requestFocus(modelFieldsFocus);
+      return;
+    }
     snackBar.hideCurrentSnackBar();
+    generateModel();
 
+    /*
     Get.generalDialog(
       pageBuilder: (context, animation, secondaryAnimation) => ScaleTransition(
         scale: animation,
         child: _buildDialog(theme, context),
       ),
     );
+    */
   }
 
+/*
   Widget _buildDialog(ThemeData theme, BuildContext context) {
     return RawKeyboardListener(
       focusNode: keyBoardFocus,
@@ -461,8 +411,28 @@ class ModelController extends GetxService {
     );
   }
 
-  void _genCode(bool wantFirebase) {
+  void _genCode() {
     Get.back();
-    generateModel(wantFirebase);
+    generateModel();
+  }
+*/
+  Future<void> saveAsDart({String modelContents, String modelName}) async {
+    final result = await file_chooser.showSavePanel(
+      suggestedFileName: '${modelName.toLowerCase()}.dart',
+      allowedFileTypes: const [
+        file_chooser.FileTypeFilterGroup(
+          label: 'dart',
+          fileExtensions: ['dart'],
+        )
+      ],
+    );
+    if (!result.canceled) {
+      await File(result.paths[0]).writeAsString(modelContents);
+    }
+  }
+
+  Future<String> get pasteFromClipBoard async {
+    ClipboardData data = await Clipboard.getData(Clipboard.kTextPlain);
+    return data.text;
   }
 }
