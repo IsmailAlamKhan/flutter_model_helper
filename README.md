@@ -8,12 +8,3 @@ Written in Dart/Flutter This version will support Desktop, Web and Mobile.
 
 If you guy's like this please give this repo a star.
 
-This is a demo.
-
-![flutter_model_helper](oldone/flutter_model_helper.gif )
-
-And here are the results
-
-![flutter_model_helper](oldone/crud_result.png)
-
-![flutter_model_helper](oldone/model_result.png)
