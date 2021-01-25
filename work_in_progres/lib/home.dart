@@ -26,27 +26,27 @@ class Home extends GetView<ModelController> {
               icon: Icon(Icons.save),
               tooltip: 'Save as Dart',
               onPressed: () async {
-                if (controller.result.join() == '' ||
-                    controller.result.join() == null)
-                  return ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Generate a Model First',
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
-                      backgroundColor: Colors.red[900],
-                    ),
-                  );
-                await controller.saveAsDart(
-                  modelContents: controller.tabController.index == 0
-                      ? controller.result.join()
-                      : controller.crudResult.join(),
-                  modelName: controller.tabController.index == 0
-                      ? '${controller.modelName}_model'
-                      : '${controller.modelName}_crud',
-                );
+                // if (controller.result.join() == '' ||
+                //     controller.result.join() == null)
+                //   return ScaffoldMessenger.of(context).showSnackBar(
+                //     SnackBar(
+                //       content: Text(
+                //         'Generate a Model First',
+                //         style: TextStyle(
+                //           color: Colors.white,
+                //         ),
+                //       ),
+                //       backgroundColor: Colors.red[900],
+                //     ),
+                //   );
+                // await controller.saveAsDart(
+                //   modelContents: controller.tabController.index == 0
+                //       ? controller.result.join()
+                //       : controller.crudResult.join(),
+                //   modelName: controller.tabController.index == 0
+                //       ? '${controller.modelName}_model'
+                //       : '${controller.modelName}_crud',
+                // );
               },
             ),
           ],
@@ -99,7 +99,9 @@ class Home extends GetView<ModelController> {
           },
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () => controller.genCode(context),
+          onPressed: () {
+            return controller.openJSON();
+          },
           tooltip: 'Generate Model',
           child: Icon(Icons.add),
         ),
@@ -144,7 +146,7 @@ class Home extends GetView<ModelController> {
         ),
         child: Obx(
           () => DartCodeViewer.flutterInteract19(
-            !isCRUD ? controller.result.join() : controller.crudResult.join(),
+            controller.result,
           ),
         ),
       ),
@@ -167,7 +169,7 @@ class Home extends GetView<ModelController> {
           TextField(
             focusNode: controller.modelNameFocus,
             controller: modelNameTEC,
-            onChanged: (val) => controller.modelName = val.trim(),
+            // onChanged: (val) => controller.modelName = val.trim(),
             style: TextStyle(
               color: Colors.white,
             ),
@@ -191,7 +193,7 @@ class Home extends GetView<ModelController> {
             ),
             focusNode: controller.modelFieldsFocus,
             onChanged: (val) {
-              controller.fields = val;
+              // controller.fields = val;
             },
             controller: modelFieldsTEC,
             decoration: InputDecoration(
