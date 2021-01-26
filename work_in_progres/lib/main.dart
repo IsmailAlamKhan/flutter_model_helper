@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +24,9 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData(
         // primaryColor: Color(0xFF8BE9FD),
         accentColor: Color(0xFFffa65c),
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          ThemeData(brightness: Brightness.dark).textTheme,
+        ),
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Color(0xFF241e30),
         appBarTheme: AppBarTheme(
