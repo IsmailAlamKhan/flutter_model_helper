@@ -27,9 +27,9 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
   final wantFirestore = false.obs;
   final _result = ''.obs;
   String get result => _result.value;
-  void getModel() {}
-  String modelName = '';
 
+  String modelName = '';
+  final isLoading = false.obs;
   Future<void> openJSON(BuildContext context) async {
     RxInt _isLocal = 2.obs;
     wantFirestore(false);
@@ -41,86 +41,130 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
       AlertDialog(
         title: Text('Choose a source'),
         actions: [
-          TextButton(
-            onPressed: () {
-              switch (_isLocal.value) {
-                case 0:
-                  _openLocalJson();
-                  break;
-                case 1:
-                  if (!_formKey.currentState.validate()) {
-                    return;
-                  }
-                  _openRemoteJson(apiURL);
-
-                  break;
-              }
-            },
-            child: Text('Generate'),
+          Obx(
+            () => TextButton(
+              onPressed: isLoading.value
+                  ? null
+                  : () {
+                      isLoading(true);
+                      switch (_isLocal.value) {
+                        case 0:
+                          _openLocalJson();
+                          break;
+                        case 1:
+                          if (!_formKey.currentState.validate()) {
+                            isLoading(false);
+                            return;
+                          }
+                          _openRemoteJson(apiURL, context);
+                          break;
+                      }
+                    },
+              child: AnimatedSwitcher(
+                duration: 500.milliseconds,
+                child: isLoading.value
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : Text('Generate'),
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel'),
+          Obx(
+            () => TextButton(
+              onPressed: isLoading.value ? null : () => Get.back(),
+              child: Text('Cancel'),
+            ),
           ),
         ],
         scrollable: true,
         content: Obx(
-          () => Column(
-            children: [
-              RadioListTile<int>(
-                title: Text('Local'),
-                groupValue: _isLocal.value,
-                onChanged: (int val) => _isLocal(val),
-                value: 0,
-                toggleable: true,
-              ),
-              RadioListTile<int>(
-                title: Text('Remote'),
-                groupValue: _isLocal.value,
-                toggleable: true,
-                onChanged: (int val) => _isLocal(val),
-                value: 1,
-              ),
-              AnimatedSwitcher(
-                duration: 500.milliseconds,
-                child: _isLocal.value == 1
-                    ? Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 20,
-                            ),
-                            TextFormField(
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'URL',
-                              ),
-                              validator: (value) {
-                                if (value == '') {
-                                  return 'Please write the URL';
-                                } else if (!value.contains('http://')) {
-                                  return 'Please write a valid URL';
-                                }
-                                return null;
-                              },
-                              onChanged: (val) => apiURL = val,
-                            ),
-                          ],
-                        ),
-                      )
-                    : _isLocal.value == 0
-                        ? Column(
+          () => Container(
+            width: 400,
+            child: Column(
+              children: [
+                RadioListTile<int>(
+                  title: Text('Local'),
+                  groupValue: _isLocal.value,
+                  onChanged: (int val) => _isLocal(val),
+                  value: 0,
+                  toggleable: true,
+                  activeColor: context.theme.accentColor,
+                ),
+                RadioListTile<int>(
+                  title: Text('Remote'),
+                  groupValue: _isLocal.value,
+                  toggleable: true,
+                  onChanged: (int val) => _isLocal(val),
+                  value: 1,
+                  activeColor: context.theme.accentColor,
+                ),
+                AnimatedSwitcher(
+                  duration: 500.milliseconds,
+                  transitionBuilder: (child, animation) => SizeTransition(
+                    child: ClipRRect(child: child),
+                    axis: Axis.vertical,
+                    axisAlignment: 1.0,
+                    sizeFactor: animation,
+                  ),
+                  child: _isLocal.value == 1
+                      ? Form(
+                          key: _formKey,
+                          child: Column(
                             children: [
                               SizedBox(
                                 height: 20,
                               ),
-                              _wantFirebase(context),
+                              TextFormField(
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: 'URL',
+                                ),
+                                validator: (value) {
+                                  if (value == '') {
+                                    return 'Please write the URL';
+                                  } else if (!value.isURL) {
+                                    return 'Please write a valid URL';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (val) => apiURL = val,
+                              ),
+                              SizedBox(
+                                height: 20,
+                              ),
+                              TextFormField(
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: 'Model name',
+                                ),
+                                validator: (value) {
+                                  if (value == '') {
+                                    return 'Please the Model name';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (val) => modelName = val,
+                              ),
                             ],
-                          )
-                        : SizedBox.shrink(),
-              ),
-            ],
+                          ),
+                        )
+                      : _isLocal.value == 0
+                          ? Column(
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                ),
+                                _wantFirebase(context),
+                              ],
+                            )
+                          : SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -146,9 +190,39 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
     );
   }
 
-  Future<void> _openRemoteJson(String modelName) async {
-    Get.back();
-    Get.snackbar('Error', 'Not yet implemeted');
+  final GetConnect connect = GetConnect();
+
+  Future<void> _openRemoteJson(String url, BuildContext context) async {
+    try {
+      final Response _res = await connect.get(url);
+
+      Get.back();
+      print(_res.body.runtimeType);
+      if (!(_res.body is Map<String, dynamic>) &&
+          !(_res.body is List<dynamic>)) {
+        isLoading(false);
+        Get.rawSnackbar(
+          margin: EdgeInsets.zero,
+          message: 'The url doesn\'t have a valid json response',
+          backgroundColor: context.theme.errorColor,
+        );
+        return;
+      }
+      if (_res.body is List<dynamic>) {
+        await _convertJSON(jsonEncode(_res.body.first));
+      } else {
+        await _convertJSON(jsonEncode(_res.body));
+      }
+    } catch (e) {
+      isLoading(false);
+      Get.back();
+      Get.rawSnackbar(
+        margin: EdgeInsets.zero,
+        message: e.toString(),
+        backgroundColor: context.theme.errorColor,
+      );
+      rethrow;
+    }
   }
 
   Future<void> _openLocalJson() async {
@@ -163,28 +237,19 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
     );
     final _file = File(result.paths.first);
     final String fileContains = await _file.readAsString();
-    _convertJSON(
-      path.basename(_file.path),
+    modelName =
+        '${path.basename(_file.path).substring(0, path.basename(_file.path).indexOf('.')).capitalize.replaceAll(' ', '').replaceAll('_', '')}';
+
+    Get.back();
+    await _convertJSON(
       fileContains,
     );
-    Get.back();
   }
 
-  Future<void> _convertJSON(
-    String name,
-    String data,
-  ) async {
+  Future<void> _convertJSON(String data) async {
     final Map<String, dynamic> json = jsonDecode(data);
-    final _name = name;
     List<String> _fields = <String>[];
     List<String> _types = <String>[];
-    modelName =
-        '${_name.substring(0, _name.indexOf('.')).capitalize.replaceAll(' ', '')}';
-    final _modelName = _name
-        .substring(0, _name.indexOf('.'))
-        .replaceAll('_', ' ')
-        .capitalize
-        .replaceAll(' ', '');
 
     for (var item in json.keys) {
       _fields.add(item);
@@ -196,7 +261,7 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
     }
 
     ///*Model Start
-    _result("$_modelName{\n");
+    _result("$modelName{\n");
 
     ///*Model FIELDS Declare
     for (var i = 0; i < _fields.length; i++) {
@@ -204,7 +269,7 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
     }
 
     ///*Model Constructor
-    _result.value += '\n$ONETAB$_modelName({\n';
+    _result.value += '\n$ONETAB$modelName({\n';
     for (var i = 0; i < _fields.length; i++) {
       _result.value += '${TWOTAB}this.${_fields[i]},\n';
     }
@@ -214,7 +279,7 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
     ///*Firestore
     if (wantFirestore.value) {
       _result.value +=
-          '\n$ONETAB$_modelName.fromDocumentSnapshot({DocumentSnapshot documentSnapshot}) {\n';
+          '\n$ONETAB$modelName.fromDocumentSnapshot({DocumentSnapshot documentSnapshot}) {\n';
       _result.value += '${THREETAB}id = documentSnapshot.id\n';
 
       for (var i = 0; i < _fields.length; i++) {
@@ -226,20 +291,15 @@ class ModelController extends GetxService with SingleGetTickerProviderMixin {
 
     ///*End
     _result.value += '\n}';
+    isLoading(false);
   }
 
   Future<void> saveAsDart(BuildContext context) async {
     if (result == '' || result == null)
-      return ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Generate a Model First',
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: Colors.red[900],
-        ),
+      return Get.rawSnackbar(
+        margin: EdgeInsets.zero,
+        message: 'Generate a model first',
+        backgroundColor: context.theme.errorColor,
       );
     final _result = await file_chooser.showSavePanel(
       suggestedFileName: '${modelName.toLowerCase()}_model.dart',

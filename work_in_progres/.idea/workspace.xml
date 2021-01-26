@@ -9,15 +9,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="194b8395-337c-409e-b912-412c0ece0154" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/runConfigurations/Flutter.xml" afterDir="false" />
+    <list default="true" id="194b8395-337c-409e-b912-412c0ece0154" name="Default Changelist" comment="fetched json from api then parsed it to generate model">
       <change beforePath="$PROJECT_DIR$/.flutter-plugins-dependencies" beforeDir="false" afterPath="$PROJECT_DIR$/.flutter-plugins-dependencies" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/main_dart.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/home.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/home.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/main.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/model_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/model_controller.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_help.iml" beforeDir="false" afterPath="$PROJECT_DIR$/model_help.iml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,7 +68,7 @@
     <property name="dart.analysis.tool.window.visible" value="false" />
     <property name="io.flutter.reload.alreadyRun" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="preferences.intentionPowerPack" />
+    <property name="settings.editor.selected.configurable" value="Errors" />
     <property name="show.migrate.to.gradle.popup" value="false" />
   </component>
   <component name="ReaderModeSettings">
@@ -92,6 +87,14 @@
       <option name="presentableId" value="Default" />
       <updated>1611622556353</updated>
     </task>
+    <task id="LOCAL-00001" summary="Added two methods of generating model">
+      <created>1611626640602</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1611626640602</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -110,10 +113,12 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Added two methods of generating model" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added two methods of generating model" />
+    <MESSAGE value="fetched json from api then parsed it to generate model" />
+    <option name="LAST_COMMIT_MESSAGE" value="fetched json from api then parsed it to generate model" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
